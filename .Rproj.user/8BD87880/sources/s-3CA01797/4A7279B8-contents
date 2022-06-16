@@ -1,0 +1,40 @@
+#' @import library(foreach)
+
+#here are some convenience functions for loading data. 
+
+#' Insert data into the database
+#'
+#' Insert data into a named database table. 
+#' @param data The data table object in R session
+#' @param table The destination data table name in the database
+#' @return confirmation or error. 
+#' @export
+data_insert<-function(data,table){
+  
+  #write data to temp file
+  suppressWarnings(suppressMessages(file.remove("tempfile.csv")))
+  write.csv(data,"tempfile.csv",row.names = FALSE)
+  
+  tempfilename= paste(getwd(),"/tempfile.csv",sep="")
+  
+  command = paste("dbuddy insert",table,tempfilename)
+  
+  if(table=="detections"){
+    file.remove("ids.csv.gz")
+  }
+  
+  if(table=="detections"){
+    idsname = paste(getwd(),"/ids.csv.gz",sep="")
+    command = paste(command,"--out",idsname)
+  }  
+
+  system(command)
+  
+  if(table=="detections"){
+    return(read.csv(idsname))
+    file.remove("ids.csv.gz")
+  }
+  
+  file.remove("tempfile.csv")
+  
+}

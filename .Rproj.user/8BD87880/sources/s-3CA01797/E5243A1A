@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1655408007482.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "E5243A1A",
+    "lastKnownWriteTime" : 1655417634,
+    "last_content_update" : 1655417634808,
+    "path" : "C:/Users/daniel.woodrich/Desktop/database/dbuddy_tools/R/pckg_scripts.R",
+    "project_path" : "R/pckg_scripts.R",
+    "properties" : {
+        "cursorPosition" : "33,3",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
