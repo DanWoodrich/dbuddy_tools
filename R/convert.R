@@ -1,92 +1,20 @@
-FG_pull<-function(Name){
-  
-  suppressWarnings(suppressMessages(file.remove("tempfile.csv")))
-  outpath = paste(getwd(),"/tempfile.csv.gz",sep="")
-  
-  command = paste("dbuddy pull filegroups",outpath,"--FileGroup",Name)
-    
-  system(command)
-    
-  file = read.csv(outpath)
-    
-  file.remove(outpath)
-    
-  return(file)
-}
+#conversions of old (pre-NAS) 'Sfiles' to FG and GTfiles to GT. 
 
-FG_insert<-function(FG,Name,SelectionMethod,Description){
-  
-  suppressWarnings(suppressMessages(file.remove("tempfile.csv")))
-  # write.csv(data,"tempfile.csv",row.names = FALSE)
 
-  write.csv(FG,"tempfile.csv",row.names = FALSE)
-
-  tempfilename= paste(getwd(),"/tempfile.csv",sep="")
-  
-  command = paste("dbuddy insert filegroups",tempfilename,Name,
-                  "--SelectionMethod",SelectionMethod,"--Description",Description)
-  
-  system(command)
-  
-  file.remove("tempfile.csv")
-  
-}
-
-data_modify<-function(data,table){
- 
-  suppressWarnings(suppressMessages(file.remove("tempfile.csv")))
-  
-  write.csv(data,"tempfile.csv",row.names = FALSE)
-  
-  tempfilename= paste(getwd(),"/tempfile.csv",sep="")
-  
-  command = paste("dbuddy modify",table,tempfilename)
-  
-  system(command)
-  
-  file.remove("tempfile.csv")
-  
-}
-
-data_pull<-function(query){
-  
-  suppressWarnings(suppressMessages(file.remove("tempfile.csv.gz")))
-  
-  outpath = paste(getwd(),"/tempfile.csv.gz",sep="")
-  
-  command = paste("dbuddy pull direct",outpath,shQuote(query))
-  
-  system(command)
-  
-  file = read.csv(outpath)
-  
-  file.remove(outpath)
-  
-  return(file)
-}
-
-data_delete<-function(data,table){
-  
-  #write data to temp file
-  suppressWarnings(suppressMessages(file.remove("tempfile.csv")))
-  write.csv(data,"tempfile.csv",row.names = FALSE)
-  
-  tempfilename= paste(getwd(),"/tempfile.csv",sep="")
-  
-  command = paste("dbuddy delete",table,tempfilename)
-  
-  system(command)
-
-  file.remove(tempfilename)
-  #return IDs from data in the case of detections. 
-  
-}
 
 #FGdat<-read.csv(paste(folderName,SfilesName,sep="/"))
 
 #GTfileName<-paste("//akc0ss-n086/NMML_CAEP_Acoustics/Detector/RavenBLEDscripts/Data/Selection tables/",Species,"/",data$MooringName[1],"Sum/",saveName,".txt",sep="")
 #GTdata<-read.delim(GTfileName,row.names=NULL)
 
+#' Convert old effort data to filegroup 
+#'
+#' Using old (pre-NAS) effort data, convert to FG format. 
+#' @param data 'Sfiles' type effort data as data frame
+#' @param oldMooringName The mooring name of the old effort data. 
+#' @param source AFSC or DCLDE- different standards
+#' @return FG dataset
+#' @export
 FGconvert<-function(data,oldMooringName,source){
   
   data$SFsh<-gsub("_", "-", data$SFsh)
@@ -138,6 +66,18 @@ FGconvert<-function(data,oldMooringName,source){
   
 }
 
+#' Convert old effort data to filegroup 
+#'
+#' Using old (pre-NAS) effort data, convert to FG format. 
+#' @param GTdata The mooring name of the old effort data.
+#' @param FGdat The data of type 'Sfile' corresponding to the GT data. 
+#' @param Species The two letter code corresponding to species/call type (RW, GS, etc)
+#' @param labtype i_neg, det, etc.
+#' @param vhz visible hz range of analysis (accepts 'max' as well as numeric)
+#' @param a_id Integer ID for the analysis (must correspond to a record in 'analysis' table on the database)
+#' @param source AFSC or DCLDE- different standards
+#' @return FG dataset
+#' @export
 GTconvert <-function(GTdata,FGdat,Species,oldMooringName,labtype,vhz,a_id,source="AFSC"){
   
 lookup<-read.csv("./mooring_name_lookup_edit.csv")
@@ -248,4 +188,5 @@ waveRename <-function(wavvec,oldMooringName){
   return(wavvec)
 }
 #modify columns for database.
-
+#' @import foreach
+NULL
