@@ -164,6 +164,95 @@ return(GTout)
 
 }
 
+
+#' Take a filegroup with arbitrary bin length and break it into SC size sections. 
+#'
+#' Using old (pre-NAS) effort data, convert to FG format. 
+#' @param data A dataframe of type FG
+#' @param binlen length in seconds of bin- standard are 300 (LOW) 225 (REG) and 90 (SHI). Other values will be marked as 'custom'
+#' @return FG dataset
+#' @export
+breakbins<-function(data,binlen){
+  
+  #condition: if the row has a higher duration than the max of the bins, break it into multiple until condition is satisfied
+  
+  data$index<-1:nrow(data)
+  
+  newrows<-foreach(n=1:nrow(data)) %do% {
+    #for(n in 1:nrow(data)){
+    row = data[which(data$index==n),]
+    #go row by row. if duration > binlen, expand row, delete old row, and stich back in. 
+    if(row$SegDur>binlen){
+      
+      #uh oh - think I found a bug in here... 4/7/22. that means that FGs and binsFGs are suspect on the db!!
+      #the case was a row which had a length of 375 that started on 225, being split into mids- it split this case into 0-225 and 225-375
+      
+      if(row$SegDur%%binlen==0){
+        binints = rep(binlen,row$SegDur/binlen)
+        binstarts = c(0,cumsum(binints)) + row$SegStart  #adding segstart is potential bugfix. needs to be tested. added on 4/7/22- all on database didn't use this!!
+      }else{
+        secs = sum(rep(binlen,row$SegDur/binlen))
+        binints = c(rep(binlen,row$SegDur/binlen),row$SegDur-secs)
+        binstarts= c(0,cumsum(binints)) + row$SegStart  #adding segstart is potential bugfix. needs to be tested. added on 4/7/22- all on database didn't use this!!
+      }
+      startends<-matrix(nrow=length(binints),ncol=2)
+      for(p in 1:length(binints)){
+        startends[p,]<-c(binstarts[p],binints[p])
+      }
+      
+      #nice, so now have intervals. create the rows
+      rows = data.frame(row[,1:5],startends,row[,8:9])
+    }else{
+      rows = row
+    }
+    #remove original row. easier to do it here. 
+    data=data[-which(data$index==n),]
+    
+    colnames(rows)[c(6,7)]<-c("SegStart","SegDur")
+    
+    Standard_lengths = c(300,225,90) #LMH
+    Standard_Names = c("LOW","REG","SHI")
+    if(binlen %in% Standard_lengths){
+      binName = Standard_Names[which(Standard_lengths==binlen)]
+    }else{
+      binName = "CUSTOM"
+    }
+
+    rows$Type = binName
+    #check that bin is standard bin, and if not, relabel as CUSTOM bin. 
+    
+    for(n in nrow(rows)){
+      
+      STANDARD = TRUE
+      #if start does not equal a multiple of bin size, not standard
+      if(rows[n,]$SegStart%%binlen!=0){
+        STANDARD = FALSE
+      }
+      if(!(rows[n,]$SegDur%%binlen==0 | (rows[n,]$SegStart+rows[n,]$SegDur)==rows[n,]$Duration)){
+        STANDARD = FALSE
+      }
+      
+      if(!STANDARD){
+        rows[n,]$Type<-"CUSTOM"
+      }
+    }
+    
+    return(rows)
+    
+  }
+  newrows =do.call("rbind",newrows)
+  
+  #if(!is.null(newrows)){
+  #  colnames(newrows)[c(6,7)]<-c("SegStart","SegDur")
+  #  data=rbind(newrows,data)
+  #}
+  
+  #data<-data[order(data$index,data$SegStart),] #original order
+  
+  return(newrows)
+  
+}
+
 waveRename <-function(wavvec,oldMooringName){
   
   lookup<-read.csv("./mooring_name_lookup_edit.csv")
