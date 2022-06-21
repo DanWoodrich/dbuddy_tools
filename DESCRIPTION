@@ -1,6 +1,15 @@
-Package: dbuddy_tools
+Package: DbuddyTools
 Type: Package
 Title: R convenience functions for AFSC MML Acoustics database tasks
-Version: 0.0.1.0
+Description: An R package for the AFSC Marine Mammal Lab Acoustics group to use database resources within an R session. This package will be updated as underlying database technology changes to produce consistent results. 
+Version: 0.0.1.1
 Encoding: UTF-8
+License: MIT + file LICENSE
+#Maintainer: Daniel Woodrich
+#Author: Daniel Woodrich <d.woodrich1@gmail.com>
+Authors@R: person("Daniel", "Woodrich", email = "d.woodrich1@gmail.com",role = c("aut", "cre"))
 RoxygenNote: 7.2.0
+Imports:
+    foreach,utils
+Depends: 
+    R (>= 2.10)

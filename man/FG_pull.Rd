@@ -7,7 +7,7 @@
 FG_pull(Name)
 }
 \arguments{
-\item{name}{the name of the filegroup}
+\item{Name}{the name of the filegroup}
 }
 \value{
 the filegroup dataframe object

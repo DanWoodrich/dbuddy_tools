@@ -60,7 +60,7 @@ FGconvert<-function(data,oldMooringName,source){
   outData$cumsum<- cumsum(outData$Duration)-outData$Duration[1]
   outData$cumsum<- c(0,cumsum(outData$Duration)[1:(nrow(outData)-1)])
   
-  outData$FileName = waveRename(outData$FileName,oldMooringName,lookup)
+  outData$FileName = waveRename(outData$FileName,oldMooringName)
   
   return(outData)
   
@@ -72,6 +72,7 @@ FGconvert<-function(data,oldMooringName,source){
 #' @param GTdata The mooring name of the old effort data.
 #' @param FGdat The data of type 'Sfile' corresponding to the GT data. 
 #' @param Species The two letter code corresponding to species/call type (RW, GS, etc)
+#' @param oldMooringName The mooring name of the old effort data.
 #' @param labtype i_neg, det, etc.
 #' @param vhz visible hz range of analysis (accepts 'max' as well as numeric)
 #' @param a_id Integer ID for the analysis (must correspond to a record in 'analysis' table on the database)
@@ -80,7 +81,7 @@ FGconvert<-function(data,oldMooringName,source){
 #' @export
 GTconvert <-function(GTdata,FGdat,Species,oldMooringName,labtype,vhz,a_id,source="AFSC"){
   
-lookup<-read.csv("./mooring_name_lookup_edit.csv")
+lookup<-read.csv(".data_internal/mooring_name_lookup_edit.csv")
   
 outData = FGconvert(FGdat,oldMooringName,source)
 
@@ -91,7 +92,7 @@ GTdata$Begin.Time..s.<-as.numeric(GTdata$Begin.Time..s.)
 GTdata$End.Time..s.<-as.numeric(GTdata$End.Time..s.)
 
 #outData$cumsum<- cumsum(outData$Duration)
-
+i=NULL
 #this is a super jenk way to do this but this part doesn't need to scale so I don't care
 
 values<-foreach(i=1:nrow(GTdata)) %do% {
@@ -157,13 +158,12 @@ GTout[,2]<-as.numeric(GTout[,2])
 
 #rename waves: should work for everything. 
 
-GTout$StartFile<-waveRename(GTout$StartFile,oldMooringName,lookup)
-GTout$EndFile<-waveRename(GTout$EndFile,oldMooringName,lookup)
+GTout$StartFile<-waveRename(GTout$StartFile,oldMooringName)
+GTout$EndFile<-waveRename(GTout$EndFile,oldMooringName)
 
 return(GTout)
 
 }
-
 
 #' Take a filegroup with arbitrary bin length and break it into SC size sections. 
 #'
@@ -217,7 +217,7 @@ breakbins<-function(data,binlen){
     }else{
       binName = "CUSTOM"
     }
-
+    
     rows$Type = binName
     #check that bin is standard bin, and if not, relabel as CUSTOM bin. 
     
@@ -253,9 +253,10 @@ breakbins<-function(data,binlen){
   
 }
 
+
 waveRename <-function(wavvec,oldMooringName){
   
-  lookup<-read.csv("./mooring_name_lookup_edit.csv")
+  lookup<-read.csv(".data_internal/mooring_name_lookup_edit.csv")
   
   if((oldMooringName %in% lookup$Old.B.drive.name)){
     own=lookup[which(lookup$Old.B.drive.name==oldMooringName),"Old.wave.name"]
@@ -276,6 +277,87 @@ waveRename <-function(wavvec,oldMooringName){
   
   return(wavvec)
 }
+
+#V0.0.1.1: add in a function to go between INSTINCT Raven data type to INSTINCT detx. 
+#equivalent behavior to method: rd-simple-w-metadata-v1-5
+
+#' Convert a file from RAVENx to AFSC INSTINCT DETx format
+#'
+#' Using a  
+#' @param FG A csv of AFSC INSTINCT datatype 'filegroup'. 
+#' @param RAVx A tab delimited Raven file containing the necessary RAVENx fields. 
+#' @param out full path of the file you want to save. 
+#' @return DETx data object
+#' @export
+RavenToDETx <-function(FG,RAVx,out){
+  #throw out the segment info. 
+  FG<-FG[which(!duplicated(FG$FileName)),]
+  
+  #reduce RAVx files to just names, not locations. 
+  
+  RAVx<-RAVx[which(RAVx$View!="Waveform 1"),]
+  
+  RAVx<-RAVx[,which(!colnames(RAVx) %in% c("Selection","View","Channel"))]
+  
+  RAVx<-RAVx[order(RAVx$Begin.Time..s.),]
+  
+  #get rid of not considered, and placeholder
+  
+  #v1-5 bugfix
+  if('SignalCode' %in% colnames(RAVx)){
+    if(any(RAVx$SignalCode!="Not Considered"&RAVx$SignalCode!="Placeholder")){
+      RAVx<-RAVx[which(RAVx$SignalCode!="Not Considered"&RAVx$SignalCode!="Placeholder"),]
+    }
+  }
+  
+  
+  #changed this from backslash to forward slash, but not sure why it is coming out different...
+  for(i in 1:nrow(RAVx)){
+    slashes<-length(gregexpr("/|\\\\",RAVx$Begin.Path[i])[[1]])
+    lastSlash<-gregexpr("/|\\\\",RAVx$Begin.Path[i])[[1]][slashes]
+    RAVx$Begin.Path[i]<-substr(RAVx$Begin.Path[i],lastSlash+1,nchar(RAVx$Begin.Path[i]))
+  }
+  
+  for(i in 1:nrow(RAVx)){
+    slashes<-length(gregexpr("/|\\\\",RAVx$End.Path[i])[[1]])
+    lastSlash<-gregexpr("/|\\\\",RAVx$End.Path[i])[[1]][slashes]
+    RAVx$End.Path[i]<-substr(RAVx$End.Path[i],lastSlash+1,nchar(RAVx$End.Path[i]))
+  }
+  
+  #convert RAVx names back to DETx standard
+  colnames(RAVx)[1:8]<-c("StartTime","EndTime","LowFreq","HighFreq","StartFile","EndFile","FileOffset","DeltaTime")
+  
+  
+  colnames(FG)[which(colnames(FG)=="FileName")]<-"StartFile"
+  FG$StartTime<-NULL
+  
+  #merge RAVx with FG
+  RAVxFG<-merge(RAVx,FG,by="StartFile")
+  
+  #start becomes file offset
+  RAVxFG$StartTime<-RAVxFG$FileOffset
+  
+  #end becomes file offset + delta time
+  RAVxFG$EndTime<-RAVxFG$StartTime+RAVxFG$DeltaTime
+  
+  #at the end, do a check if any end times are > duration (from FG). If so, subtract them by FG duration. 
+  RAVxFG$EndTime[which(RAVxFG$EndTime>RAVxFG$Duration)]<-RAVxFG$EndTime[which(RAVxFG$EndTime>RAVxFG$Duration)]-RAVxFG$Duration[which(RAVxFG$EndTime>RAVxFG$Duration)]
+  
+  #remove unnecessary non metadata columns. 
+  
+  #1-3: we define unnecessary columns by name, allowing for others to be retained. 
+  
+  out<-data.frame(RAVxFG[,2:5],RAVxFG[,1],RAVxFG[,6:ncol(RAVxFG)])
+  colnames(out)[5]<-c("StartFile")
+  
+  unneccessaryCols = c("FileOffset","DeltaTime","FullPath","Duration","Deployment","SegStart","SegDur","SiteID","DiffTime")
+  
+  out = out[,colnames(out)[!(colnames(out) %in% unneccessaryCols)]]
+  
+  write.csv(out,gzfile(paste(resultPath,"DETx.csv.gz",sep="/")),row.names = FALSE)
+
+}
 #modify columns for database.
 #' @import foreach
+#' @import utils
 NULL

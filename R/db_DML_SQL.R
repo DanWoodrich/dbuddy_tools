@@ -40,7 +40,7 @@ data_insert<-function(data,table){
 #' Filegroup Pull
 #'
 #' Pull effort from a filegroup from the database by name. Uses INSTINCT format. 
-#' @param name the name of the filegroup
+#' @param Name the name of the filegroup
 #' @return the filegroup dataframe object
 #' @export
 FG_pull<-function(Name){
@@ -156,4 +156,5 @@ data_delete<-function(data,table){
   
 }
 
-
+#' @import utils
+NULL

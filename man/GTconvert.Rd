@@ -22,6 +22,8 @@ GTconvert(
 
 \item{Species}{The two letter code corresponding to species/call type (RW, GS, etc)}
 
+\item{oldMooringName}{The mooring name of the old effort data.}
+
 \item{labtype}{i_neg, det, etc.}
 
 \item{vhz}{visible hz range of analysis (accepts 'max' as well as numeric)}
